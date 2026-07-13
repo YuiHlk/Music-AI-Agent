@@ -1,0 +1,29 @@
+spring:
+  application:
+    name: music-ai-agent
+  datasource:
+    url: jdbc:h2:file:${MUSIC_AI_DATA_DIR:../.local/data}/music-ai;MODE=MySQL;AUTO_SERVER=TRUE
+    username: sa
+    password:
+  sql:
+    init:
+      mode: always
+      schema-locations: classpath:schema.sql
+
+music-ai:
+  export-directory: ${MUSIC_AI_EXPORT_DIR:../.local/exports}
+  deepseek:
+    base-url: ${DEEPSEEK_BASE_URL:https://api.deepseek.com}
+    model-name: ${DEEPSEEK_MODEL:deepseek-v4-flash}
+    api-key: ${DEEPSEEK_API_KEY:}
+  security:
+    access-key: ${MUSIC_AI_ACCESS_KEY:}
+    session-ttl-seconds: ${MUSIC_AI_SESSION_TTL_SECONDS:28800}
+    secure-cookie: ${MUSIC_AI_SECURE_COOKIE:false}
+  mcp:
+    enabled: ${MUSIC_AI_MCP_ENABLED:false}
+    token: ${MUSIC_AI_MCP_TOKEN:}
+
+mybatis-plus:
+  configuration:
+    map-underscore-to-camel-case: true

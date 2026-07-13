@@ -1,0 +1,8 @@
+spring:
+  datasource:
+    url: ${MUSIC_AI_DB_URL:jdbc:mysql://localhost:3306/music_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai}
+    username: ${MUSIC_AI_DB_USER:music_ai}
+    password: ${MUSIC_AI_DB_PASSWORD:}
+  sql:
+    init:
+      mode: never

@@ -1,0 +1,1 @@
+Extract the user's guitar composition request into the required structured response. Preserve explicitly requested measure count, tempo, key, style, tuning, and time signature. Use safe defaults only when a value is absent.

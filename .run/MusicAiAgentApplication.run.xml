@@ -1,0 +1,10 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="MusicAiAgentApplication" type="SpringBootApplicationConfigurationType" factoryName="Spring Boot">
+    <module name="music-ai-agent" />
+    <option name="SPRING_BOOT_MAIN_CLASS" value="com.musicai.agent.MusicAiAgentApplication" />
+    <option name="WORKING_DIRECTORY" value="$PROJECT_DIR$/music-backend" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+    </method>
+  </configuration>
+</component>

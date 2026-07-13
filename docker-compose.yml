@@ -1,0 +1,56 @@
+services:
+  mysql:
+    image: mysql:8.4
+    environment:
+      MYSQL_DATABASE: music_ai
+      MYSQL_USER: music_ai
+      MYSQL_PASSWORD: ${MUSIC_AI_DB_PASSWORD:-music_ai_local}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root_local_only}
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./docker/mysql/init.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root_local_only}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  api:
+    build: ./music-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: mysql,deepseek
+      MUSIC_AI_DB_URL: jdbc:mysql://mysql:3306/music_ai?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      MUSIC_AI_DB_USER: music_ai
+      MUSIC_AI_DB_PASSWORD: ${MUSIC_AI_DB_PASSWORD:-music_ai_local}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY before starting Docker Compose}
+      MUSIC_AI_ACCESS_KEY: ${MUSIC_AI_ACCESS_KEY:-}
+      MUSIC_AI_SESSION_TTL_SECONDS: ${MUSIC_AI_SESSION_TTL_SECONDS:-28800}
+      MUSIC_AI_SECURE_COOKIE: ${MUSIC_AI_SECURE_COOKIE:-false}
+      MUSIC_AI_MCP_ENABLED: ${MUSIC_AI_MCP_ENABLED:-false}
+      MUSIC_AI_MCP_TOKEN: ${MUSIC_AI_MCP_TOKEN:-}
+      MUSIC_AI_EXPORT_DIR: /app/exports
+    ports:
+      - "8080:8080"
+    volumes:
+      - music-exports:/app/exports
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  frontend:
+    build: ./music-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - api
+
+  audio-analysis:
+    build: ./music-ai-python
+    ports:
+      - "8000:8000"
+
+volumes:
+  mysql-data:
+  music-exports:
