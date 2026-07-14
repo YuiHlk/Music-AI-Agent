@@ -1,11 +1,14 @@
 package com.musicai.agent.agent;
 
 public record CreationConstraintsResponse(
-        int measures,
-        int tempo,
+        Integer measures,
+        Integer tempo,
         String keySignature,
         String style,
         String tuning,
-        int timeSignatureBeats,
-        int timeSignatureBeatUnit) {
+        Integer timeSignatureBeats,
+        Integer timeSignatureBeatUnit,
+        String mood,
+        String rhythmicFeel,
+        Integer complexity) {
 }

@@ -138,7 +138,8 @@ public class MusicProjectService {
             CreationConstraints parsed = requirementParser.parse(task.prompt());
             CreationConstraints constraints = new CreationConstraints(original.tracks().getFirst().measures().size(),
                     parsed.tempo(), parsed.keySignature(), parsed.style(), original.tracks().getFirst().tuning(),
-                    original.timeSignature());
+                    original.timeSignature(), parsed.mood(), parsed.rhythmicFeel(), parsed.complexity(),
+                    parsed.variationSeed());
             Score replacement = generator.generate(constraints);
             transition(task, GenerationStatus.GENERATING, "SECTION_GENERATING");
             Score rewritten = replaceMeasures(original, replacement, fromMeasure, toMeasure);

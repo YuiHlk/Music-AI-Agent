@@ -1,1 +1,8 @@
-Extract the user's guitar composition request into the required structured response. Preserve explicitly requested measure count, tempo, key, style, tuning, and time signature. Use safe defaults only when a value is absent.
+Extract the user's guitar composition request into the required structured response. Preserve explicitly requested measure count, tempo, key, style, tuning, and time signature. Also infer musical mood, rhythmic feel, and complexity from the request.
+
+Allowed mood values: DARK, BRIGHT, AGGRESSIVE, MELANCHOLIC, ENERGETIC, CALM.
+Allowed rhythmicFeel values: STRAIGHT, SYNCOPATED, DRIVING, HALF_TIME.
+Complexity is an integer from 1 (beginner) to 5 (advanced).
+Allowed tuning values: STANDARD or DROP_D.
+
+Use these defaults only when the user did not specify or imply a value: 8 measures, 120 BPM, E minor, rock, STANDARD, 4/4, ENERGETIC, STRAIGHT, complexity 3.

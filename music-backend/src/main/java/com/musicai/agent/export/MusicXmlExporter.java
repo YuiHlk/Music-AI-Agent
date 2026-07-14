@@ -2,6 +2,7 @@ package com.musicai.agent.export;
 
 import com.musicai.agent.domain.ChordEvent;
 import com.musicai.agent.domain.ChordNote;
+import com.musicai.agent.domain.KeySignature;
 import com.musicai.agent.domain.NoteEvent;
 import com.musicai.agent.domain.RhythmicDuration;
 import com.musicai.agent.domain.Score;
@@ -114,8 +115,9 @@ public final class MusicXmlExporter {
         Element attributes = child(document, measure, "attributes");
         appendText(document, attributes, "divisions", Integer.toString(DIVISIONS));
         Element key = child(document, attributes, "key");
-        appendText(document, key, "fifths", "1");
-        appendText(document, key, "mode", "minor");
+        KeySignature keySignature = KeySignature.parse(score.keySignature());
+        appendText(document, key, "fifths", Integer.toString(keySignature.fifths()));
+        appendText(document, key, "mode", keySignature.mode().name().toLowerCase());
         Element time = child(document, attributes, "time");
         appendText(document, time, "beats", Integer.toString(score.timeSignature().beats()));
         appendText(document, time, "beat-type", Integer.toString(score.timeSignature().beatUnit()));
@@ -134,6 +136,8 @@ public final class MusicXmlExporter {
             case 480 -> "quarter";
             case 240 -> "eighth";
             case 120 -> "16th";
+            case 60 -> "32nd";
+            case 30 -> "64th";
             default -> throw new IllegalArgumentException("Unsupported MusicXML duration: " + ticks);
         };
     }
