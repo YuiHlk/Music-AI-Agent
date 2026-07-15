@@ -12,6 +12,11 @@ import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+/**
+ * 在未启用 DeepSeek 时以确定性规则解析中英文创作要求。
+ *
+ * <p>规则实现既提供离线降级能力，也避免应用层依赖外部模型可用性。</p>
+ */
 @Component
 @Profile("!deepseek")
 public final class RuleBasedRequirementParser implements RequirementParser {

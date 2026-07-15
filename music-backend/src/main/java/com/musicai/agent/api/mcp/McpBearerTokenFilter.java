@@ -15,6 +15,9 @@ import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Map;
 
+/**
+ * 在 MCP servlet 之前验证严格的 Bearer token，并直接返回稳定的 HTTP 401 JSON。
+ */
 final class McpBearerTokenFilter extends OncePerRequestFilter {
 
     private static final String BEARER_PREFIX = "Bearer ";
@@ -22,11 +25,16 @@ final class McpBearerTokenFilter extends OncePerRequestFilter {
     private final byte[] expectedToken;
     private final ObjectMapper objectMapper;
 
+    /**
+     * @param expectedToken 配置的共享 token
+     * @param objectMapper 未认证响应序列化器
+     */
     McpBearerTokenFilter(String expectedToken, ObjectMapper objectMapper) {
         this.expectedToken = expectedToken.getBytes(StandardCharsets.UTF_8);
         this.objectMapper = objectMapper;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -53,6 +61,7 @@ final class McpBearerTokenFilter extends OncePerRequestFilter {
             return false;
         }
         byte[] candidate = authorization.substring(BEARER_PREFIX.length()).getBytes(StandardCharsets.UTF_8);
+        // 避免普通字符串比较的提前退出泄露可利用的逐字节时序差异。
         return MessageDigest.isEqual(expectedToken, candidate);
     }
 }

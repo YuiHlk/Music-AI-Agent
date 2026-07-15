@@ -16,19 +16,29 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.Map;
 
+/**
+ * 使用访问密钥 Header 或 HttpOnly 会话 cookie 保护应用 REST API。
+ * cookie 方案使无法附加自定义 Header 的浏览器 EventSource 也能认证。
+ */
 @Component
 public class AccessKeyFilter extends OncePerRequestFilter {
 
+    /** 浏览器访问会话的 cookie 名称。 */
     public static final String SESSION_COOKIE = "MUSIC_AI_SESSION";
 
     private final AccessKeyAuthenticator authenticator;
     private final ObjectMapper objectMapper;
 
+    /**
+     * @param authenticator 密钥和会话验证器
+     * @param objectMapper 401 响应序列化器
+     */
     public AccessKeyFilter(AccessKeyAuthenticator authenticator, ObjectMapper objectMapper) {
         this.authenticator = authenticator;
         this.objectMapper = objectMapper;
     }
 
+    /** {@inheritDoc} */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         return !authenticator.enabled()
@@ -37,6 +47,7 @@ public class AccessKeyFilter extends OncePerRequestFilter {
                 || request.getMethod().equals("OPTIONS");
     }
 
+    /** {@inheritDoc} */
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain chain)
             throws ServletException, IOException {
@@ -58,6 +69,11 @@ public class AccessKeyFilter extends OncePerRequestFilter {
                 "timestamp", Instant.now().toString()));
     }
 
+    /**
+     * @param request HTTP 请求
+     * @param name cookie 名称
+     * @return 第一个同名 cookie 值，不存在时为 {@code null}
+     */
     static String cookieValue(HttpServletRequest request, String name) {
         if (request.getCookies() == null) {
             return null;

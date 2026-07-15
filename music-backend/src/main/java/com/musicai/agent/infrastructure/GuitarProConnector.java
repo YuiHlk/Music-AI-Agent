@@ -7,9 +7,19 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * 通过 Windows 文件关联应用打开吉他谱导出文件。
+ */
 @Component
 public class GuitarProConnector {
 
+    /**
+     * 使用系统关联的桌面应用打开指定产物。
+     *
+     * @param artifact 待打开的产物路径
+     * @throws IllegalArgumentException 文件不存在或不是普通文件时抛出
+     * @throws IllegalStateException 当前平台不支持桌面打开操作或打开失败时抛出
+     */
     public void open(Path artifact) {
         Path normalized = artifact.toAbsolutePath().normalize();
         if (!Files.isRegularFile(normalized)) {

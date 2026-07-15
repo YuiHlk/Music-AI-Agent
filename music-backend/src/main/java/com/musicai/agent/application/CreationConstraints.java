@@ -3,6 +3,20 @@ package com.musicai.agent.application;
 import com.musicai.agent.domain.GuitarTuning;
 import com.musicai.agent.domain.TimeSignature;
 
+/**
+ * 汇总一次吉他 Riff 创作所需的结构、风格与变化约束。
+ *
+ * @param measures 生成小节数
+ * @param tempo 每分钟四分音符拍数
+ * @param keySignature 调号文本
+ * @param style 规范化为小写的风格名称
+ * @param tuning 吉他调弦
+ * @param timeSignature 拍号
+ * @param mood 音乐情绪
+ * @param rhythmicFeel 节奏感觉
+ * @param complexity 1 至 5 的创作复杂度
+ * @param variationSeed 用于复现提示词变化的随机种子
+ */
 public record CreationConstraints(
         int measures,
         int tempo,
@@ -15,6 +29,9 @@ public record CreationConstraints(
         int complexity,
         long variationSeed) {
 
+    /**
+     * 创建并校验完整创作约束。
+     */
     public CreationConstraints {
         if (measures < 1 || measures > 128) {
             throw new IllegalArgumentException("Measure count must be between 1 and 128");
@@ -34,12 +51,27 @@ public record CreationConstraints(
         style = style.trim().toLowerCase(java.util.Locale.ROOT);
     }
 
+    /**
+     * 使用默认情绪、节奏、复杂度和变化种子创建兼容约束。
+     *
+     * @param measures 生成小节数
+     * @param tempo 每分钟四分音符拍数
+     * @param keySignature 调号文本
+     * @param style 风格名称
+     * @param tuning 吉他调弦
+     * @param timeSignature 拍号
+     */
     public CreationConstraints(int measures, int tempo, String keySignature, String style,
                                GuitarTuning tuning, TimeSignature timeSignature) {
         this(measures, tempo, keySignature, style, tuning, timeSignature,
                 MusicalMood.ENERGETIC, defaultFeel(style), 3, 0L);
     }
 
+    /**
+     * 创建标准调弦、E 小调、四四拍的默认摇滚 Riff 约束。
+     *
+     * @return 默认创作约束
+     */
     public static CreationConstraints defaultRockRiff() {
         return new CreationConstraints(8, 120, "E minor", "rock", GuitarTuning.STANDARD,
                 TimeSignature.FOUR_FOUR, MusicalMood.ENERGETIC, RhythmicFeel.STRAIGHT, 3, 0L);

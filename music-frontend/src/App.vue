@@ -3,6 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import { createMidiPlayer } from './midiPlayer.js'
 
+/**
+ * 工作台在单一 MVP 组件中协调认证、项目、异步生成、SSE、轮询、乐谱预览与 MIDI 试听。
+ * @typedef {{id: string, title: string, status: string, currentVersion: number}} StoredProject
+ * @typedef {{id: string, status: string, errorMessage?: string}} StoredTask
+ * @typedef {{id: string, type: string, versionNumber: number}} StoredArtifact
+ * @typedef {{type: string, notes?: Array<{stringNumber: number, fret: number}>}} ScoreEvent
+ */
+
 const title = ref('My first rock riff')
 const prompt = ref('生成一段 8 小节、120 BPM、E 小调、标准调弦的摇滚吉他 Riff')
 const project = ref(null)
@@ -19,11 +27,20 @@ const midiPlayer = createMidiPlayer()
 let eventSource
 let pollTimer
 
+// 这是面向用户的阶段近似值；FAILED=100 表示流程已终止，并不表示成功完成。
 const progress = computed(() => ({ PENDING: 5, PARSING_REQUIREMENTS: 20, PLANNING: 34,
   GENERATING: 48, VALIDATING: 68, EXPORTING: 86, COMPLETED: 100, FAILED: 100 })[task.value?.status] ?? 0)
 const currentMidi = computed(() => artifacts.value.filter(item => item.type === 'MIDI')
   .sort((a, b) => b.versionNumber - a.versionNumber)[0])
 
+/**
+ * 调用同源 JSON API，并把 401 同步为全局认证界面状态。
+ *
+ * @param {string} path API 相对路径。
+ * @param {RequestInit} [options] fetch 选项；调用方 header 可覆盖默认 JSON 类型。
+ * @returns {Promise<any>} 204 时为 null，其余成功响应为 JSON。
+ * @throws {Error} 响应非成功状态时抛出服务端消息或 HTTP 状态。
+ */
 async function api(path, options = {}) {
   const response = await fetch(path, { headers: { 'Content-Type': 'application/json', ...options.headers }, ...options })
   if (!response.ok) {
@@ -35,12 +52,15 @@ async function api(path, options = {}) {
   return response.json()
 }
 
+/** 用最近 30 个项目替换项目浏览列表。 */
 async function loadProjects() { projectList.value = await api('/api/projects?limit=30') }
+/** 初始化服务端安全状态，并仅在会话可用时加载项目。 */
 async function initializeSession() {
   const session = await api('/api/session')
   authRequired.value = session.securityEnabled && !session.authenticated
   if (!authRequired.value) await loadProjects()
 }
+/** 用访问密钥换取 HttpOnly cookie 会话，密钥不会持久化到浏览器存储。 */
 async function login() {
   busy.value = true
   try {
@@ -49,6 +69,7 @@ async function login() {
     await loadProjects(); ElMessage.success('访问会话已建立')
   } catch (error) { ElMessage.error(error.message) } finally { busy.value = false }
 }
+/** 创建并选中新项目，同时清空上一个项目的任务、产物和乐谱状态。 */
 async function createProject() {
   busy.value = true
   try {
@@ -58,11 +79,16 @@ async function createProject() {
     connectEvents(); await loadProjects(); ElMessage.success('项目已创建')
   } catch (error) { ElMessage.error(error.message) } finally { busy.value = false }
 }
+/**
+ * 切换到项目详情，并行加载其当前乐谱和全部导出物。
+ * @param {StoredProject} selected 项目列表中的摘要。
+ */
 async function selectProject(selected) {
   stopPlayback(); project.value = await api(`/api/projects/${selected.id}`); title.value = project.value.title
   task.value = null; timeline.value = [{ type: 'PROJECT_SELECTED', text: `已载入 ${project.value.title}` }]
   connectEvents(); await Promise.all([loadArtifacts(), loadScore()])
 }
+/** 创建缺失项目后提交异步生成任务；SSE 展示事件，轮询负责权威终态。 */
 async function generate() {
   if (!project.value) await createProject()
   if (!project.value) return
@@ -72,6 +98,10 @@ async function generate() {
     startPolling()
   } catch (error) { ElMessage.error(error.message) } finally { busy.value = false }
 }
+/**
+ * 关闭旧连接并订阅当前项目的内存态 SSE 事件。
+ * 浏览器负责网络断线重连，EXPORT_COMPLETED 事件触发交付物刷新。
+ */
 function connectEvents() {
   eventSource?.close()
   eventSource = new EventSource(`/api/projects/${project.value.id}/events`)
@@ -81,6 +111,10 @@ function connectEvents() {
     if (name === 'EXPORT_COMPLETED') refreshGeneratedResult()
   }))
 }
+/**
+ * 每 700ms 查询任务权威状态，并在终态刷新项目、乐谱和导出物。
+ * SSE 可能丢失或重连，因此不能单独承担任务完成判定。
+ */
 function startPolling() {
   clearInterval(pollTimer)
   pollTimer = setInterval(async () => {
@@ -95,16 +129,29 @@ function startPolling() {
     } catch (error) { clearInterval(pollTimer); ElMessage.error(error.message) }
   }, 700)
 }
+/** 并行刷新当前项目交付物、乐谱预览和项目列表摘要。 */
 async function refreshGeneratedResult() { await Promise.all([loadArtifacts(), loadScore(), loadProjects()]) }
+/** 在存在当前项目时替换其全部版本导出物列表。 */
 async function loadArtifacts() { if (project.value) artifacts.value = await api(`/api/projects/${project.value.id}/artifacts`) }
+/** 加载当前版本的稳定预览 DTO；无版本时清除旧预览。 */
 async function loadScore() {
   if (!project.value?.currentVersion) { score.value = null; return }
   score.value = await api(`/api/projects/${project.value.id}/score`)
 }
+/**
+ * 格式化一个乐谱事件在指定弦上的品位。
+ * @param {ScoreEvent} event 预览事件。
+ * @param {number} stringNumber 1 为最高音弦的弦号。
+ * @returns {number|'·'|'—'} 品位、休止符占位或无音符占位。
+ */
 function fretFor(event, stringNumber) {
   if (event.type === 'REST') return '·'
   return event.notes?.find(note => note.stringNumber === stringNumber)?.fret ?? '—'
 }
+/**
+ * 从二进制下载接口取得最新 MIDI，并沿点击事件链启动或停止 Web Audio 试听。
+ * 下载不复用 JSON API 包装器，因为成功响应不是 JSON。
+ */
 async function togglePlayback() {
   if (playing.value) { stopPlayback(); return }
   if (!currentMidi.value) return
@@ -115,8 +162,10 @@ async function togglePlayback() {
     await midiPlayer.play(await response.arrayBuffer(), () => { playing.value = false })
   } catch (error) { playing.value = false; ElMessage.error(error.message) }
 }
+/** 停止底层音源并同步试听按钮状态。 */
 function stopPlayback() { midiPlayer.stop(); playing.value = false }
 onMounted(() => initializeSession().catch(error => ElMessage.error(error.message)))
+// 组件卸载时同时释放长连接、轮询和 Web Audio 音源，避免后台工作泄漏。
 onBeforeUnmount(() => { eventSource?.close(); clearInterval(pollTimer); midiPlayer.stop() })
 </script>
 

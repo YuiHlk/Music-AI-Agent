@@ -22,6 +22,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
 
+/**
+ * 声明 Music AI Agent 对 MCP 客户端开放的工具目录。
+ *
+ * <p>本类只负责协议 Schema、参数校验和结果适配，实际业务统一委托给
+ * {@link MusicProjectService}，因此 MCP 调用不会绕过应用层与领域校验。</p>
+ */
 @Component
 public class MusicMcpToolCatalog {
 
@@ -29,13 +35,27 @@ public class MusicMcpToolCatalog {
     private final ObjectMapper objectMapper;
     private final Validator validator;
 
+    /**
+     * @param projects 项目应用服务
+     * @param objectMapper MCP 参数和结果的对象映射器
+     * @param validator 工具输入校验器
+     */
     public MusicMcpToolCatalog(MusicProjectService projects, ObjectMapper objectMapper, Validator validator) {
         this.projects = projects;
         this.objectMapper = objectMapper;
         this.validator = validator;
     }
 
+    /**
+     * 构建服务器启动时注册的全部同步工具定义。
+     *
+     * <p>“同步工具”指 MCP 调用本身同步返回；音乐生成与局部重写仍会返回
+     * 持久化任务，由客户端继续轮询任务状态。</p>
+     *
+     * @return MCP 工具定义列表
+     */
     List<McpServerFeatures.SyncToolSpecification> specifications() {
+        // Schema、行为提示和执行器在同一处声明，避免 MCP 客户端看到的能力与真实用例漂移。
         return List.of(
                 tool("create_music_project",
                         "Create a persistent music project and return its generated project ID.",
@@ -146,6 +166,7 @@ public class MusicMcpToolCatalog {
     private <T> McpSchema.CallToolResult invoke(Map<String, Object> arguments, Class<T> inputType,
                                                 Function<T, Object> action) {
         try {
+            // MCP 参数属于不可信外部输入，先转成强类型 DTO 并执行 Bean Validation，再进入应用层。
             T input = objectMapper.convertValue(arguments, inputType);
             validate(input);
             return success(action.apply(input));
@@ -194,6 +215,7 @@ public class MusicMcpToolCatalog {
 
     private static McpSchema.ToolAnnotations annotations(boolean readOnly, boolean destructive,
                                                           boolean idempotent) {
+        // openWorld=false 表示工具只操作本项目边界内的资源，不代表工具调用一定是只读的。
         return McpSchema.ToolAnnotations.builder()
                 .readOnlyHint(readOnly)
                 .destructiveHint(destructive)

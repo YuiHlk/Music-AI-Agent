@@ -10,10 +10,20 @@ import dev.langchain4j.service.AiServices;
 
 import java.util.Locale;
 
+/**
+ * 使用 DeepSeek 模型提取创作要求，并将模型结果收敛为受控的应用层约束。
+ *
+ * <p>该类型是 AI 信任边界：模型只提供候选值，枚举映射、缺省值和确定性种子均由本地代码决定。</p>
+ */
 public final class DeepSeekRequirementParser implements RequirementParser {
 
     private final CreationConstraintsAiService aiService;
 
+    /**
+     * 创建基于指定聊天模型的要求解析器。
+     *
+     * @param chatModel 用于约束提取的聊天模型
+     */
     public DeepSeekRequirementParser(ChatModel chatModel) {
         this.aiService = AiServices.create(CreationConstraintsAiService.class, chatModel);
     }
@@ -23,6 +33,7 @@ public final class DeepSeekRequirementParser implements RequirementParser {
         if (userMessage == null || userMessage.isBlank()) {
             throw new IllegalArgumentException("Creation request must not be blank");
         }
+        // 大模型仅负责提取约束；返回值仍需在本地转换为受控枚举和值对象。
         CreationConstraintsResponse response = aiService.parse(userMessage);
         if (response == null) {
             throw new IllegalStateException("DeepSeek returned no creation constraints");
@@ -69,6 +80,7 @@ public final class DeepSeekRequirementParser implements RequirementParser {
     }
 
     static long stableSeed(String prompt) {
+        // FNV-1a 对规范化后的 UTF-8 提示词求哈希，用作确定性生成种子，不承担安全用途。
         long hash = 0xcbf29ce484222325L;
         for (byte value : prompt.strip().toLowerCase(Locale.ROOT).getBytes(java.nio.charset.StandardCharsets.UTF_8)) {
             hash ^= value & 0xffL;

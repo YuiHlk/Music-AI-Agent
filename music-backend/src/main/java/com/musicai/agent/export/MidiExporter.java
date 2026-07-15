@@ -15,10 +15,23 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+/**
+ * 将领域乐谱转换为标准 MIDI 文件或内存序列。
+ */
 public final class MidiExporter {
 
+    // 480 PPQ 可精确表达当前支持的二分至六十四分音符，同时保持常见 DAW/GP8 兼容性。
+    /** 每四分音符的 MIDI 脉冲数，用于精确量化领域时值。 */
     public static final int PPQ = 480;
 
+    /**
+     * 校验乐谱并写出类型 1 的标准 MIDI 文件。
+     *
+     * @param score 待导出的乐谱
+     * @param target 目标文件路径
+     * @return 原目标路径
+     * @throws IOException 无法创建目录、编码或写入 MIDI 时
+     */
     public Path export(Score score, Path target) throws IOException {
         score.validate();
         try {
@@ -34,6 +47,13 @@ public final class MidiExporter {
         }
     }
 
+    /**
+     * 将乐谱转换为包含速度、拍号和音符事件的 MIDI PPQ 序列。
+     *
+     * @param score 待转换的乐谱
+     * @return MIDI 内存序列
+     * @throws InvalidMidiDataException 元事件或通道事件不符合 MIDI 协议时
+     */
     public Sequence toSequence(Score score) throws InvalidMidiDataException {
         Sequence sequence = new Sequence(Sequence.PPQ, PPQ);
         javax.sound.midi.Track midiTrack = sequence.createTrack();
@@ -54,6 +74,7 @@ public final class MidiExporter {
                                 tick + duration));
                     }
                 }
+                // 休止符不写 MIDI 事件，但仍推进时间轴；和弦内所有音共享同一时间窗口。
                 tick += duration;
             }
         }

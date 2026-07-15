@@ -4,7 +4,16 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 
+/**
+ * 表示在同一起始时刻发声的吉他和弦事件。
+ *
+ * @param notes 和弦中的按弦音，必须占用互不重复的琴弦
+ * @param duration 和弦持续时值
+ */
 public record ChordEvent(List<ChordNote> notes, RhythmicDuration duration) implements MusicalEvent {
+    /**
+     * 校验和弦音数、时值及琴弦占用约束。
+     */
     public ChordEvent {
         notes = List.copyOf(notes);
         Objects.requireNonNull(duration, "duration");
@@ -22,6 +31,11 @@ public record ChordEvent(List<ChordNote> notes, RhythmicDuration duration) imple
         }
     }
 
+    /**
+     * 计算非空弦最低品位到最高品位之间的跨度。
+     *
+     * @return 和弦品位跨度
+     */
     public int fretSpan() {
         int minimum = notes.stream().mapToInt(note -> note.fretPosition().fret()).filter(fret -> fret > 0)
                 .min().orElse(0);

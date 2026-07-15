@@ -11,6 +11,9 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Base64;
 
+/**
+ * 校验访问密钥并签发、验证有时效的会话令牌。
+ */
 @Component
 public class AccessKeyAuthenticator {
 
@@ -20,6 +23,12 @@ public class AccessKeyAuthenticator {
     private final long sessionTtlSeconds;
     private final Clock clock;
 
+    /**
+     * 使用配置的访问密钥和会话有效期创建认证器。
+     *
+     * @param accessKey 服务访问密钥；为空时关闭访问保护
+     * @param sessionTtlSeconds 会话令牌有效秒数
+     */
     @Autowired
     public AccessKeyAuthenticator(@Value("${music-ai.security.access-key:}") String accessKey,
                                   @Value("${music-ai.security.session-ttl-seconds:28800}") long sessionTtlSeconds) {
@@ -35,23 +44,47 @@ public class AccessKeyAuthenticator {
         this.clock = clock;
     }
 
+    /**
+     * 判断访问密钥保护是否启用。
+     *
+     * @return 配置了非空访问密钥时为 {@code true}
+     */
     public boolean enabled() {
         return accessKey.length > 0;
     }
 
+    /**
+     * 以恒定时间比较候选值和配置的访问密钥，降低时序侧信道泄露风险。
+     *
+     * @param candidate 候选访问密钥
+     * @return 保护已启用且密钥匹配时为 {@code true}
+     */
     public boolean matchesAccessKey(String candidate) {
         return enabled() && candidate != null && constantTimeEquals(accessKey,
                 candidate.getBytes(StandardCharsets.UTF_8));
     }
 
+    /**
+     * 签发包含到期时间并由访问密钥认证的会话令牌，避免后续请求反复传输原始密钥。
+     *
+     * @return URL 安全的会话令牌
+     * @throws IllegalStateException 访问保护未启用时抛出
+     */
     public String issueSessionToken() {
         if (!enabled()) {
             throw new IllegalStateException("Access key protection is disabled");
         }
+        // 令牌仅携带到期时间和 HMAC，可无服务端会话状态地校验且不会暴露原始访问密钥。
         String expiresAt = Long.toString(Instant.now(clock).getEpochSecond() + sessionTtlSeconds);
         return expiresAt + "." + sign(expiresAt);
     }
 
+    /**
+     * 校验会话令牌的有效期与签名，防止客户端篡改到期时间。
+     *
+     * @param token 待校验的会话令牌
+     * @return 令牌格式正确、未过期且签名匹配时为 {@code true}
+     */
     public boolean isValidSessionToken(String token) {
         if (!enabled() || token == null) {
             return false;
@@ -72,6 +105,11 @@ public class AccessKeyAuthenticator {
                 token.substring(separator + 1).getBytes(StandardCharsets.US_ASCII));
     }
 
+    /**
+     * 返回会话令牌有效期。
+     *
+     * @return 有效秒数
+     */
     public long sessionTtlSeconds() {
         return sessionTtlSeconds;
     }

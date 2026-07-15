@@ -14,13 +14,23 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.SplittableRandom;
 
+/**
+ * 根据结构化创作约束生成可复现且可演奏的单轨吉他 Riff 乐谱。
+ */
 public final class GuitarRiffGenerator {
 
+    // 音阶以相对根音的半音数表示，使同一套生成规则可以直接移调到任意调性。
     private static final int[] MAJOR_SCALE = {0, 2, 4, 5, 7, 9, 11};
     private static final int[] MINOR_SCALE = {0, 2, 3, 5, 7, 8, 10};
     private static final int[] MINOR_PENTATONIC = {0, 3, 5, 7, 10};
     private static final int[] BLUES_SCALE = {0, 3, 5, 6, 7, 10};
 
+    /**
+     * 生成并完整校验一份吉他 Riff 乐谱。
+     *
+     * @param constraints 创作与结构约束
+     * @return 对相同约束可确定性复现的乐谱
+     */
     public Score generate(CreationConstraints constraints) {
         KeySignature key = KeySignature.parse(constraints.keySignature());
         int[] scale = scaleFor(constraints, key);
@@ -29,6 +39,7 @@ public final class GuitarRiffGenerator {
         int slotsPerMeasure = Math.multiplyExact(constraints.timeSignature().beats(), subdivisions);
         RhythmicDuration slotDuration = new RhythmicDuration(1,
                 Math.multiplyExact(constraints.timeSignature().beatUnit(), subdivisions));
+        // 固定约束产生固定种子：既允许复现结果，也让关键提示词变化真正进入音符序列。
         SplittableRandom random = new SplittableRandom(mixSeed(constraints));
         int[] motif = createMotif(slotsPerMeasure, scale.length, constraints, random);
 
@@ -80,6 +91,7 @@ public final class GuitarRiffGenerator {
 
     private static int variedDegree(int original, int slot, int measureNumber, int scaleSize,
                                     CreationConstraints constraints, SplittableRandom random) {
+        // 每四小节重新落到主音，避免随机变化破坏 Riff 的乐句边界。
         if (slot == 0 && (measureNumber == 1 || measureNumber % 4 == 1)) {
             return 0;
         }
@@ -126,12 +138,15 @@ public final class GuitarRiffGenerator {
     }
 
     private static int playableRoot(int pitchClass, CreationConstraints constraints) {
+        // 从当前调弦最低音向上寻找根音，防止生成器先产生无法映射到指板的低音。
         int lowestOpenPitch = constraints.tuning().openStringsHighToLow().stream()
                 .mapToInt(Pitch::midiNumber).min().orElseThrow();
+        // MIDI 38 是 D2：它限制 Riff 的最低音区；若最低空弦更高，则改用实际调弦边界。
         int pitch = Math.max(38, lowestOpenPitch);
         while (Math.floorMod(pitch, 12) != pitchClass) {
             pitch++;
         }
+        // 高于 D#3 时下移一个八度，使根音回到主要 Riff 音区且仍不低于 D2。
         return pitch > 51 ? pitch - 12 : pitch;
     }
 
@@ -149,6 +164,7 @@ public final class GuitarRiffGenerator {
     }
 
     private static long mixSeed(CreationConstraints constraints) {
+        // variationSeed 来自原始提示词，其余字段再次混入以避免不同结构化约束发生碰撞。
         long seed = constraints.variationSeed();
         seed = 31 * seed + constraints.keySignature().toLowerCase().hashCode();
         seed = 31 * seed + constraints.style().hashCode();

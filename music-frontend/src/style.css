@@ -1,3 +1,4 @@
+/* 全局主题与基础重置 */
 :root {
   font-family: Inter, "Noto Sans SC", system-ui, sans-serif;
   color: #f0f1e9;
@@ -11,6 +12,7 @@ body { margin: 0; min-width: 320px; min-height: 100vh; background:
   linear-gradient(135deg, #11120f, #171914 60%, #10110e); }
 button, input, textarea { font: inherit; }
 
+/* 工作台框架、面板与项目浏览 */
 .workspace { width: min(1180px, calc(100% - 40px)); margin: 0 auto; padding: 46px 0 70px; }
 .topbar { display: flex; align-items: flex-end; justify-content: space-between; margin-bottom: 34px; }
 .eyebrow { color: #c7ff42; letter-spacing: .2em; font-size: 11px; font-weight: 800; margin: 0 0 8px; }
@@ -32,11 +34,13 @@ h1 { font-size: clamp(36px, 6vw, 68px); line-height: .95; letter-spacing: -.055e
 .project-chip strong, .project-chip span { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .project-chip strong { margin-bottom: 5px; font-size: 13px; }
 .project-chip span { color: #777c70; font: 10px monospace; }
+/* 表单与 Element Plus 主题覆盖；组件内部默认样式需要 !important 才能稳定覆盖。 */
 .composer-card .el-input { margin-bottom: 12px; }
 .el-input__wrapper, .el-textarea__inner { background: #141611 !important; box-shadow: 0 0 0 1px #35382f inset !important; color: #eef0e5 !important; }
 .el-textarea__inner { resize: none; padding: 15px; line-height: 1.7; }
 .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .el-button--primary { --el-button-bg-color: #c7ff42; --el-button-border-color: #c7ff42; --el-button-text-color: #15170f; --el-button-hover-bg-color: #d7ff75; --el-button-hover-border-color: #d7ff75; }
+/* 任务进度与事件时间线 */
 .meter { display: grid; grid-template-columns: 72px 1fr; align-items: center; margin: 8px 0 28px; }
 .meter strong { font-size: 26px; }
 .el-progress-bar__outer { background: #32352c !important; }
@@ -51,6 +55,7 @@ h1 { font-size: clamp(36px, 6vw, 68px); line-height: .95; letter-spacing: -.055e
 .timeline-item strong { color: #b3b7a9; font: 700 10px monospace; }
 .timeline-item p { color: #777c70; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin: 2px 0; font-size: 11px; }
 .empty, .artifact-placeholder { color: #6e7367; font-size: 13px; }
+/* 六线谱预览：数字背景遮住横线，使弦线从品位数字后方穿过。 */
 .score-panel { margin-top: 18px; }
 .score-heading { align-items: center; }
 .score-heading > div { flex: 1; }
@@ -61,6 +66,7 @@ h1 { font-size: clamp(36px, 6vw, 68px); line-height: .95; letter-spacing: -.055e
 .tab-string::after { content: ''; position: absolute; left: 24px; right: 0; height: 1px; background: #505448; z-index: 0; }
 .tab-string span { color: #6f7468; }
 .tab-string i { position: relative; z-index: 1; justify-self: center; min-width: 17px; padding: 1px 3px; color: #dce0d3; background: #151711; text-align: center; font-style: normal; }
+/* 导出物卡片 */
 .artifacts { margin-top: 18px; }
 .artifact-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .artifact-card { display: grid; grid-template-columns: 1fr auto; gap: 7px; color: inherit; text-decoration: none; background: #151711; border: 1px solid #33372d; border-radius: 11px; padding: 18px; transition: .2s ease; }
@@ -69,6 +75,7 @@ h1 { font-size: clamp(36px, 6vw, 68px); line-height: .95; letter-spacing: -.055e
 .artifact-card span { color: #777c70; font-size: 12px; }
 .artifact-card em { grid-column: 2; grid-row: 1 / span 2; align-self: center; color: #b8bcae; font-style: normal; font-size: 12px; }
 
+/* 移动端单列布局 */
 @media (max-width: 780px) {
   .workspace { width: min(100% - 24px, 680px); padding-top: 28px; }
   .topbar { align-items: flex-start; }

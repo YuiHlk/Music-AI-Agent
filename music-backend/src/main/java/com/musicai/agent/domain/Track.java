@@ -2,7 +2,17 @@ package com.musicai.agent.domain;
 
 import java.util.List;
 
+/**
+ * 表示采用固定吉他调弦的一条乐谱轨道。
+ *
+ * @param name 轨道名称
+ * @param tuning 吉他调弦
+ * @param measures 按编号排列的小节
+ */
 public record Track(String name, GuitarTuning tuning, List<Measure> measures) {
+    /**
+     * 创建轨道并固定小节列表快照。
+     */
     public Track {
         if (name == null || name.isBlank()) {
             throw new IllegalArgumentException("Track name must not be blank");
@@ -13,6 +23,12 @@ public record Track(String name, GuitarTuning tuning, List<Measure> measures) {
         }
     }
 
+    /**
+     * 校验音高与指板位置一致，并限制和弦横向跨度。
+     *
+     * @param maximumFretSpan 允许的最大和弦品位跨度
+     * @throws IllegalStateException 存在错误指法或跨度过大的和弦时
+     */
     public void validatePlayability(int maximumFretSpan) {
         for (Measure measure : measures) {
             for (MusicalEvent event : measure.events()) {

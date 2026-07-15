@@ -24,7 +24,9 @@ demo/
 └── README.md
 ```
 
-完整实现文档位于 Obsidian Vault：`docs/Music-AI-Agent-Docs`，首页为 `00-首页.md`。
+项目根目录本身就是 Obsidian Vault，使用 Obsidian 打开本目录后，从 [`docs/00-首页.md`](docs/00-首页.md) 进入知识库。
+
+每个目录与源码/配置文件的职责说明见 [`docs/PROJECT_STRUCTURE.md`](docs/PROJECT_STRUCTURE.md)。
 
 ## 本地启动
 
@@ -60,7 +62,7 @@ cd ..
 cd music-frontend
 pnpm build
 cd ..\music-ai-python
-python -m unittest discover -s tests -v
+python -m pytest tests -q
 ```
 
 真实 DeepSeek 测试仅在提供 `DEEPSEEK_API_KEY` 时运行，普通测试不依赖外部模型和网络。
