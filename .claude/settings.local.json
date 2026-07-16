@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(music-ai-python/.venv/Scripts/python.exe -m pytest music-ai-python/tests -q)",
+      "Bash(PYTHONPATH=music-ai-python music-ai-python/.venv/Scripts/python.exe -m pytest music-ai-python/tests -q)",
+      "Bash(pnpm:*)"
+    ]
+  }
+}

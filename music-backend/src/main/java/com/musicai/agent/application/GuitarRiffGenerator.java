@@ -36,6 +36,7 @@ public final class GuitarRiffGenerator {
         int[] scale = scaleFor(constraints, key);
         int basePitch = playableRoot(key.rootPitchClass(), constraints);
         int subdivisions = subdivisions(constraints);
+        //Math.multiplyExact()和普通乘法的区别在于：整数溢出时会抛出ArithmeticException，而不是悄悄产生错误数值。
         int slotsPerMeasure = Math.multiplyExact(constraints.timeSignature().beats(), subdivisions);
         RhythmicDuration slotDuration = new RhythmicDuration(1,
                 Math.multiplyExact(constraints.timeSignature().beatUnit(), subdivisions));
