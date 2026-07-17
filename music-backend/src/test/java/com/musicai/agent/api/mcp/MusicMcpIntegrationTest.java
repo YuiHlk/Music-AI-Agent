@@ -69,8 +69,9 @@ class MusicMcpIntegrationTest {
                 .map(tool -> tool.path("name").asText())
                 .collect(Collectors.toSet());
         assertThat(toolNames).containsExactlyInAnyOrder(
-                "create_music_project", "generate_guitar_riff", "get_generation_task", "get_score_summary",
-                "validate_score", "list_artifacts", "rewrite_measures", "rollback_project");
+                "create_music_project", "generate_guitar_riff", "generate_guitar_riff_from_constraints",
+                "get_generation_task", "get_score_summary", "validate_score", "list_artifacts",
+                "rewrite_measures", "rollback_project");
 
         JsonNode missingProject = callTool(sessionId, 30, "get_score_summary",
                 "{\"projectId\":\"missing-project\"}");
@@ -84,8 +85,10 @@ class MusicMcpIntegrationTest {
         String projectId = createResult.path("structuredContent").path("id").asText();
         assertThat(projectId).isNotBlank();
 
-        JsonNode generateResult = callTool(sessionId, 4, "generate_guitar_riff", """
-                {"projectId":"%s","prompt":"生成一段8小节、120 BPM、E小调、标准调弦的摇滚吉他Riff"}
+        JsonNode generateResult = callTool(sessionId, 4, "generate_guitar_riff_from_constraints", """
+                {"projectId":"%s","measures":8,"tempo":120,"keySignature":"E minor","style":"rock",
+                 "tuning":"STANDARD","timeSignatureBeats":4,"timeSignatureBeatUnit":4,
+                 "mood":"ENERGETIC","rhythmicFeel":"STRAIGHT","complexity":3,"variationSeed":42}
                 """.formatted(projectId));
         String taskId = generateResult.path("structuredContent").path("id").asText();
         assertThat(taskId).isNotBlank();

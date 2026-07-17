@@ -9,15 +9,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
 import java.time.Duration;
 import java.time.Instant;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 @SpringBootTest
-@ActiveProfiles("deepseek")
-@EnabledIfEnvironmentVariable(named = "DEEPSEEK_API_KEY", matches = ".+")
-class DeepSeekRequirementParserLiveTest {
+@ActiveProfiles("llm")
+@EnabledIfEnvironmentVariable(named = "LLM_API_KEY", matches = ".+")
+class LlmRequirementParserLiveTest {
 
     @Autowired
     RequirementParser parser;
@@ -26,7 +26,7 @@ class DeepSeekRequirementParserLiveTest {
     MusicProjectService projects;
 
     @Test
-    void parsesTheMvpRequestWithDeepSeek() {
+    void parsesTheMvpRequestWithConfiguredModel() {
         var constraints = parser.parse("生成一段 8 小节、120 BPM、E 小调、标准调弦的摇滚吉他 Riff");
 
         assertThat(constraints.measures()).isEqualTo(8);
@@ -36,8 +36,8 @@ class DeepSeekRequirementParserLiveTest {
     }
 
     @Test
-    void runsNaturalLanguageToExportedFilesWithDeepSeek() throws Exception {
-        var project = projects.createProject("DeepSeek end-to-end riff");
+    void runsNaturalLanguageToExportedFilesWithConfiguredModel() throws Exception {
+        var project = projects.createProject("LLM end-to-end riff");
         var task = projects.generate(project.id(),
                 "生成一段 8 小节、120 BPM、E 小调、标准调弦的摇滚吉他 Riff");
 
@@ -59,6 +59,6 @@ class DeepSeekRequirementParserLiveTest {
             }
             Thread.sleep(50);
         }
-        throw new AssertionError("DeepSeek generation task did not finish");
+        throw new AssertionError("Configured LLM generation task did not finish");
     }
 }

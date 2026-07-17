@@ -88,6 +88,26 @@ public class MusicProjectService {
     }
 
     /**
+     * 使用调用方已经解析完成的结构化约束创建生成任务，不调用后端聊天模型。
+     *
+     * <p>该入口供 MCP/BYOK 客户端使用：外部模型负责理解用户语言，应用层仍负责
+     * 领域生成、校验、版本和导出。</p>
+     *
+     * @param projectId 目标项目标识
+     * @param constraints 已由调用方提供并通过构造器校验的创作约束
+     * @return 可立即查询状态的持久化任务
+     */
+    public ProjectStore.StoredTask generate(String projectId, CreationConstraints constraints) {
+        if (constraints == null) {
+            throw new IllegalArgumentException("Creation constraints must not be null");
+        }
+        requireProject(projectId);
+        ProjectStore.StoredTask task = store.createTask(projectId, writeConstraints(constraints));
+        taskExecutor.execute(() -> runGeneration(task, constraints));
+        return task;
+    }
+
+    /**
      * 创建指定小节闭区间的异步重写任务。
      *
      * @param projectId 目标项目标识
@@ -208,13 +228,24 @@ public class MusicProjectService {
         try {
             transition(task, GenerationStatus.PARSING_REQUIREMENTS, "AGENT_MESSAGE");
             CreationConstraints constraints = requirementParser.parse(task.prompt());
-            events.publish(task.projectId(), "PLAN_CREATED", constraints);
-            transition(task, GenerationStatus.GENERATING, "SECTION_GENERATING");
-            Score score = generator.generate(constraints);
-            finishScore(task, score);
+            generateScore(task, constraints);
         } catch (Exception exception) {
             fail(task, exception);
         }
+    }
+
+    private void runGeneration(ProjectStore.StoredTask task, CreationConstraints constraints) {
+        try {
+            generateScore(task, constraints);
+        } catch (Exception exception) {
+            fail(task, exception);
+        }
+    }
+
+    private void generateScore(ProjectStore.StoredTask task, CreationConstraints constraints) throws IOException {
+        events.publish(task.projectId(), "PLAN_CREATED", constraints);
+        transition(task, GenerationStatus.GENERATING, "SECTION_GENERATING");
+        finishScore(task, generator.generate(constraints));
     }
 
     private void runRewrite(ProjectStore.StoredTask task, int fromMeasure, int toMeasure) {
@@ -288,6 +319,14 @@ public class MusicProjectService {
             return objectMapper.writeValueAsString(score);
         } catch (JsonProcessingException exception) {
             throw new IllegalStateException("Could not serialize score", exception);
+        }
+    }
+
+    private String writeConstraints(CreationConstraints constraints) {
+        try {
+            return "STRUCTURED_CONSTRAINTS " + objectMapper.writeValueAsString(constraints);
+        } catch (JsonProcessingException exception) {
+            throw new IllegalStateException("Could not serialize creation constraints", exception);
         }
     }
 

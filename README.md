@@ -18,7 +18,7 @@
 
 Music AI Agent 的做法是把“理解”和“创作规则”分开：
 
-> **DeepSeek / LangChain4j 负责听懂人话，Java 音乐内核负责把音乐写对。**
+> **可配置大模型 / LangChain4j 负责听懂人话，Java 音乐内核负责把音乐写对。**
 
 模型将“来一段 8 小节、120 BPM、E 小调、偏沉重的摇滚 Riff”解析成结构化约束；确定性的 Java 领域层再生成音乐事件，检查拍号、时值、音高和吉他弦品，最后导出 MIDI 与 MusicXML。生成结果可以在 Guitar Pro 8 中继续编辑，而不是停在聊天窗口里。
 
@@ -51,7 +51,7 @@ Music AI Agent 的做法是把“理解”和“创作规则”分开：
 
 ### 3. 没有模型 Key 也能学习
 
-默认本地模式使用确定性规则解析器和文件型 H2。即使不连接 DeepSeek，也能运行后端、阅读领域模型并验证生成与导出流程。
+默认本地模式使用确定性规则解析器和文件型 H2。即使不连接外部模型，也能运行后端、阅读领域模型并验证生成与导出流程。
 
 ## 从一句话到 Guitar Pro
 
@@ -78,7 +78,7 @@ flowchart LR
 
 ## 已经能做什么
 
-- 中英文创作描述解析，支持 DeepSeek 与离线规则解析器。
+- 中英文创作描述解析，支持可配置的 OpenAI 兼容模型与离线规则解析器。
 - 约束驱动的单轨吉他 Riff 生成，而不是固定音高模板。
 - 精确分数时值、拍号、MIDI 音高、吉他调弦与弦品校验。
 - 项目、对话、异步任务、版本快照和导出物持久化。
@@ -86,6 +86,7 @@ flowchart LR
 - SSE 进度事件与项目级 Chat Memory。
 - MIDI / MusicXML 导出，并通过 Guitar Pro 8 实际导入验证。
 - Vue 3 创作工作台、MIDI 播放、REST API 与可选 MCP Server。
+- MCP 支持外部模型直接提交结构化创作约束，不消耗服务器配置的模型 Key。
 - FastAPI WAV 元数据、响度和 BPM 初步分析。
 
 > [!NOTE]
@@ -95,9 +96,14 @@ flowchart LR
 
 ```mermaid
 flowchart TB
-    UI["Vue 3 创作工作台"] --> API["REST / SSE / MCP"]
+    UI["Vue 3 创作工作台"] --> API["REST / SSE"]
+    CLIENT["外部 AI 客户端"] --> MCP["MCP Server"]
     API --> APP["Application<br/>用例与任务编排"]
-    APP --> AGENT["LangChain4j Agent<br/>意图解析与 Tools"]
+    API -->|"/chat"| AGENT["LangChain4j Agent"]
+    AGENT --> TOOLS["Java Tools"]
+    TOOLS --> APP
+    MCP --> APP
+    APP --> PARSER["RequirementParser<br/>自然语言生成路径"]
     APP --> DOMAIN["纯 Java Domain<br/>Score 与音乐规则"]
     APP --> STORE["MyBatis-Plus<br/>H2 / MySQL"]
     DOMAIN --> EXPORT["MIDI / MusicXML"]
@@ -122,7 +128,7 @@ Domain 保持纯 Java，不依赖 Spring、LangChain4j、MyBatis 或 HTTP。
 | 位置 | 使用的技术 |
 | --- | --- |
 | Java 后端 | Java 21、Spring Boot 3.5.16、Maven、MyBatis-Plus |
-| Agent | LangChain4j 1.17.2、DeepSeek、Chat Memory、Tool Calling |
+| Agent | LangChain4j 1.17.2、可配置 OpenAI 兼容模型、Chat Memory、Tool Calling |
 | 接口 | REST、SSE、MCP SDK 2.0 |
 | 数据 | H2（默认本地）、MySQL 8.4（Docker / `mysql` Profile） |
 | Web 工作台 | Vue 3、Vite、Element Plus、Web Audio |
@@ -152,26 +158,41 @@ pnpm dev
 
 打开 <http://localhost:5173>。开发服务器会将 `/api` 代理到 Java 后端。
 
-### 接入 DeepSeek
+### 接入可配置模型
 
-密钥只通过环境变量传入，不写进源码或配置文件：
+启用 `llm` Profile 后，模型提供商、兼容端点、模型名和密钥全部由环境变量决定。下面以 DeepSeek 为例：
 
 ```powershell
-$env:DEEPSEEK_API_KEY = "你的本地密钥"
-$env:SPRING_PROFILES_ACTIVE = "deepseek"
+$env:LLM_PROVIDER = "deepseek"
+$env:LLM_BASE_URL = "https://api.deepseek.com"
+$env:LLM_MODEL = "deepseek-v4-flash"
+$env:LLM_API_KEY = "你的本地密钥"
+$env:SPRING_PROFILES_ACTIVE = "llm"
 cd music-backend
 .\mvnw.cmd spring-boot:run
 ```
 
-仓库还提供了只向子进程注入密钥的启动脚本：
+更换其他OpenAI兼容服务时，只需替换以上四个`LLM_*`变量。仓库还提供了通用安全启动脚本：
 
 ```powershell
-.\scripts\run-with-deepseek.ps1 -KeyFile "C:\path\to\key.txt"
+.\scripts\run-with-llm.ps1 `
+  -Provider "openai-compatible" `
+  -BaseUrl "https://models.example.com/v1" `
+  -Model "your-model" `
+  -KeyFile "C:\path\to\key.txt"
 ```
+
+`run-with-deepseek.ps1`作为DeepSeek快捷入口继续保留。
+
+### 外部用户使用自己的模型
+
+MCP客户端可以调用`generate_guitar_riff_from_constraints`，直接提交结构化`CreationConstraints`。该路径跳过后端`RequirementParser`，因此外部用户的模型和Key留在自己的客户端，服务器只负责音乐生成、校验、版本和导出。
+
+项目内置的`MusicCreatorAgent`服务网页聊天，它通过`MusicCreationTools`直接调用同进程的应用服务；它不会通过HTTP调用自己的MCP端点。MCP只面向项目之外的Agent，完整边界见[模型、内部Agent与MCP边界](Music-AI-Agent-Docs/05-模型、内部Agent与MCP边界.md)。
 
 ### Docker Compose
 
-完整容器环境使用 MySQL 与 DeepSeek Profile，因此需要先填写 `.env`：
+完整容器环境使用 MySQL 与通用 `llm` Profile，因此需要先在`.env`填写`LLM_PROVIDER`、`LLM_BASE_URL`、`LLM_MODEL`和`LLM_API_KEY`：
 
 ```powershell
 Copy-Item .env.example .env
@@ -187,7 +208,7 @@ docker compose ps
 | MySQL | `localhost:3306` |
 
 > [!IMPORTANT]
-> `.env`、DeepSeek Key、数据库密码、访问密钥和本地导出物都不应提交到 Git。
+> `.env`、模型 Key、数据库密码、访问密钥和本地导出物都不应提交到 Git。
 
 ## 测试与验收
 
@@ -205,7 +226,7 @@ cd ..\music-ai-python
 python -m pytest tests -q
 ```
 
-普通 Java 测试不依赖真实模型和网络；DeepSeek Live Test 只在提供 Key 时执行；MySQL Testcontainers 测试需要 Docker。
+普通 Java 测试不依赖真实模型和网络；LLM Live Test 只在提供`LLM_API_KEY`时执行；MySQL Testcontainers 测试需要 Docker。
 
 ## 项目地图
 
@@ -218,7 +239,6 @@ demo/
 ├── docker/mysql/           # MySQL 初始化脚本
 ├── scripts/                # 本地安全启动脚本
 ├── docker-compose.yml
-├── AGENTS.md               # 架构边界、开发规范与路线图
 └── README.md
 ```
 
@@ -226,9 +246,10 @@ demo/
 
 1. [架构与数据流](Music-AI-Agent-Docs/01-架构与数据流.md)：先理解模型、领域层和导出的边界。
 2. [目录与逐文件说明](Music-AI-Agent-Docs/PROJECT_STRUCTURE.md)：顺着一次请求找到具体代码。
-3. [开发运行与配置](Music-AI-Agent-Docs/02-开发运行与配置.md)：切换 H2、MySQL 和 DeepSeek Profile。
+3. [开发运行与配置](Music-AI-Agent-Docs/02-开发运行与配置.md)：切换 H2、MySQL 和通用 LLM Profile。
 4. [测试与验收](Music-AI-Agent-Docs/03-测试与验收.md)：理解音乐规则怎样被自动验证。
 5. [真实项目面试问答](Music-AI-Agent-Docs/04-面试问题.md)：用设计取舍复盘项目。
+6. [模型、内部Agent与MCP边界](Music-AI-Agent-Docs/05-模型、内部Agent与MCP边界.md)：区分网页、内部Agent和外部MCP客户端。
 
 整个 `Music-AI-Agent-Docs` 目录也可以直接作为 Obsidian Vault 打开。
 

@@ -13,12 +13,12 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * 在未启用 DeepSeek 时以确定性规则解析中英文创作要求。
+ * 在未启用外部聊天模型时以确定性规则解析中英文创作要求。
  *
  * <p>规则实现既提供离线降级能力，也避免应用层依赖外部模型可用性。</p>
  */
 @Component
-@Profile("!deepseek")
+@Profile("!llm")
 public final class RuleBasedRequirementParser implements RequirementParser {
 
     private static final Pattern MEASURES = Pattern.compile("(\\d+)\\s*(?:小节|measures?)", Pattern.CASE_INSENSITIVE);
@@ -45,7 +45,7 @@ public final class RuleBasedRequirementParser implements RequirementParser {
         int complexity = firstInteger(COMPLEXITY, userMessage,
                 normalized.contains("advanced") || userMessage.contains("复杂") ? 5 : 3);
         return new CreationConstraints(measures, tempo, key, style, tuning, timeSignature,
-                mood, feel, complexity, DeepSeekRequirementParser.stableSeed(userMessage));
+                mood, feel, complexity, AiRequirementParser.stableSeed(userMessage));
     }
 
     private static String detectKey(String original, String normalized) {

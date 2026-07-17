@@ -77,8 +77,44 @@ public record CreationConstraints(
                 TimeSignature.FOUR_FOUR, MusicalMood.ENERGETIC, RhythmicFeel.STRAIGHT, 3, 0L);
     }
 
+    /**
+     * 将REST、内部Agent或MCP提供的结构化字符串值收敛为领域值对象。
+     *
+     * @return 完成枚举、调弦和拍号校验的创作约束
+     */
+    public static CreationConstraints fromStructured(int measures, int tempo, String keySignature, String style,
+                                                     String tuning, int timeSignatureBeats,
+                                                     int timeSignatureBeatUnit, String mood,
+                                                     String rhythmicFeel, int complexity, long variationSeed) {
+        GuitarTuning parsedTuning = switch (normalizeName(tuning)) {
+            case "STANDARD", "STANDARD_E" -> GuitarTuning.STANDARD;
+            case "DROP_D" -> GuitarTuning.DROP_D;
+            default -> throw new IllegalArgumentException("Unsupported tuning: " + tuning);
+        };
+        MusicalMood parsedMood = parseEnum(MusicalMood.class, mood, "mood");
+        RhythmicFeel parsedFeel = parseEnum(RhythmicFeel.class, rhythmicFeel, "rhythmicFeel");
+        return new CreationConstraints(measures, tempo, keySignature, style, parsedTuning,
+                new TimeSignature(timeSignatureBeats, timeSignatureBeatUnit), parsedMood, parsedFeel,
+                complexity, variationSeed);
+    }
+
     private static RhythmicFeel defaultFeel(String style) {
         return style != null && style.toLowerCase(java.util.Locale.ROOT).contains("metal")
                 ? RhythmicFeel.DRIVING : RhythmicFeel.STRAIGHT;
+    }
+
+    private static String normalizeName(String value) {
+        if (value == null || value.isBlank()) {
+            throw new IllegalArgumentException("Structured constraint value must not be blank");
+        }
+        return value.trim().toUpperCase(java.util.Locale.ROOT).replace('-', '_').replace(' ', '_');
+    }
+
+    private static <E extends Enum<E>> E parseEnum(Class<E> type, String value, String field) {
+        try {
+            return Enum.valueOf(type, normalizeName(value));
+        } catch (IllegalArgumentException exception) {
+            throw new IllegalArgumentException("Unsupported " + field + ": " + value, exception);
+        }
     }
 }

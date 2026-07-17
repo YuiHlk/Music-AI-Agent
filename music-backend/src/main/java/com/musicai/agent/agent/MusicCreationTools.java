@@ -1,5 +1,6 @@
 package com.musicai.agent.agent;
 
+import com.musicai.agent.application.CreationConstraints;
 import com.musicai.agent.application.MusicProjectService;
 import dev.langchain4j.agent.tool.P;
 import dev.langchain4j.agent.tool.Tool;
@@ -58,14 +59,46 @@ public class MusicCreationTools {
      * 为已有项目创建异步生成任务。
      *
      * @param projectId 项目标识
-     * @param request 自然语言创作约束
+     * @param measures 小节数
+     * @param tempo BPM
+     * @param keySignature 调性
+     * @param style 风格
+     * @param tuning 调弦
+     * @param timeSignatureBeats 每小节拍数
+     * @param timeSignatureBeatUnit 拍号分母
+     * @param mood 情绪枚举名
+     * @param rhythmicFeel 节奏感觉枚举名
+     * @param complexity 复杂度
      * @return 可供轮询的任务摘要
      */
-    @Tool("Start asynchronous guitar riff generation for an existing project. Returns a task to poll.")
+    @Tool("Start asynchronous guitar riff generation from structured constraints already inferred by the agent. "
+            + "This does not call a second language model. Poll getGenerationTask with the returned task ID.")
     public TaskResult generateGuitarRiff(
             @P("Existing project ID returned by createMusicProject") String projectId,
-            @P("Natural-language creation constraints") String request) {
-        var task = projects.generate(projectId, request);
+            @P("Number of measures from 1 to 128") int measures,
+            @P("Tempo in BPM from 20 to 300") int tempo,
+            @P("Key signature such as E minor") String keySignature,
+            @P("Musical style such as rock or metal") String style,
+            @P("Guitar tuning: STANDARD or DROP_D") String tuning,
+            @P("Beats per measure") int timeSignatureBeats,
+            @P("Beat unit: 1, 2, 4, 8, 16 or 32") int timeSignatureBeatUnit,
+            @P("Mood: DARK, BRIGHT, AGGRESSIVE, MELANCHOLIC, ENERGETIC or CALM") String mood,
+            @P("Rhythmic feel: STRAIGHT, SYNCOPATED, DRIVING or HALF_TIME") String rhythmicFeel,
+            @P("Complexity from 1 to 5") int complexity) {
+        String seedMaterial = String.join("|", Integer.toString(measures), Integer.toString(tempo), keySignature,
+                style, tuning, Integer.toString(timeSignatureBeats), Integer.toString(timeSignatureBeatUnit), mood,
+                rhythmicFeel, Integer.toString(complexity));
+        var constraints = CreationConstraints.fromStructured(measures, tempo, keySignature, style, tuning,
+                timeSignatureBeats, timeSignatureBeatUnit, mood, rhythmicFeel, complexity,
+                AiRequirementParser.stableSeed(seedMaterial));
+        var task = projects.generate(projectId, constraints);
+        return new TaskResult(task.id(), task.projectId(), task.status());
+    }
+
+    /** @return 当前异步生成或重写任务状态 */
+    @Tool("Read an asynchronous generation or rewrite task. Wait for COMPLETED before validation or export lookup.")
+    public TaskResult getGenerationTask(@P("Task ID returned by generation or rewrite") String taskId) {
+        var task = projects.requireTask(taskId);
         return new TaskResult(task.id(), task.projectId(), task.status());
     }
 

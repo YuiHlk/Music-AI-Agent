@@ -3,6 +3,7 @@ package com.musicai.agent.api.mcp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.musicai.agent.application.MusicProjectService;
+import com.musicai.agent.application.CreationConstraints;
 import com.musicai.agent.application.ResourceNotFoundException;
 import com.musicai.agent.application.port.ProjectStore;
 import com.musicai.agent.domain.Score;
@@ -75,6 +76,15 @@ public class MusicMcpToolCatalog {
                         annotations(false, false, false),
                         GenerateInput.class,
                         input -> TaskSummary.from(projects.generate(input.projectId(), input.prompt()))),
+                tool("generate_guitar_riff_from_constraints",
+                        "Start asynchronous guitar riff generation from already structured constraints. "
+                                + "This tool does not invoke the server-side language model; it is intended for "
+                                + "clients using their own model and API key. Poll get_generation_task afterwards.",
+                        structuredGenerationInputSchema(),
+                        taskOutputSchema(),
+                        annotations(false, false, false),
+                        StructuredGenerateInput.class,
+                        input -> TaskSummary.from(projects.generate(input.projectId(), input.toConstraints()))),
                 tool("get_generation_task",
                         "Read the current state of an asynchronous generation or rewrite task.",
                         objectSchema(Map.of("taskId", idProperty("Generation task ID")), List.of("taskId")),
@@ -258,6 +268,35 @@ public class MusicMcpToolCatalog {
                 "currentVersion", integerProperty("Current score version; zero means not generated", 0, 100000));
     }
 
+    private static Map<String, Object> structuredGenerationInputSchema() {
+        return objectSchema(Map.ofEntries(
+                        Map.entry("projectId", idProperty("Project ID")),
+                        Map.entry("measures", integerProperty("Measure count", 1, 128)),
+                        Map.entry("tempo", integerProperty("Tempo in BPM", 20, 300)),
+                        Map.entry("keySignature", stringProperty("Key signature such as E minor", 1, 100)),
+                        Map.entry("style", stringProperty("Normalized musical style", 1, 100)),
+                        Map.entry("tuning", enumProperty("Guitar tuning", "STANDARD", "STANDARD_E", "DROP_D")),
+                        Map.entry("timeSignatureBeats", integerProperty("Beats per measure", 1, 32)),
+                        Map.entry("timeSignatureBeatUnit", enumIntegerProperty("Beat unit", 1, 2, 4, 8, 16, 32)),
+                        Map.entry("mood", enumProperty("Musical mood",
+                                "DARK", "BRIGHT", "AGGRESSIVE", "MELANCHOLIC", "ENERGETIC", "CALM")),
+                        Map.entry("rhythmicFeel", enumProperty("Rhythmic feel",
+                                "HALF_TIME", "STRAIGHT", "SYNCOPATED", "DRIVING")),
+                        Map.entry("complexity", integerProperty("Complexity level", 1, 5)),
+                        Map.entry("variationSeed", Map.of("type", "integer",
+                                "description", "Optional deterministic variation seed"))),
+                List.of("projectId", "measures", "tempo", "keySignature", "style", "tuning",
+                        "timeSignatureBeats", "timeSignatureBeatUnit", "mood", "rhythmicFeel", "complexity"));
+    }
+
+    private static Map<String, Object> enumProperty(String description, String... values) {
+        return Map.of("type", "string", "description", description, "enum", List.of(values));
+    }
+
+    private static Map<String, Object> enumIntegerProperty(String description, Integer... values) {
+        return Map.of("type", "integer", "description", description, "enum", List.of(values));
+    }
+
     private static Map<String, Object> taskOutputSchema() {
         return objectSchema(Map.of(
                 "id", idProperty("Task ID"),
@@ -280,6 +319,26 @@ public class MusicMcpToolCatalog {
 
     record GenerateInput(@NotBlank @Size(max = 64) String projectId,
                          @NotBlank @Size(max = 4000) String prompt) {
+    }
+
+    record StructuredGenerateInput(
+            @NotBlank @Size(max = 64) String projectId,
+            @Min(1) @Max(128) int measures,
+            @Min(20) @Max(300) int tempo,
+            @NotBlank @Size(max = 100) String keySignature,
+            @NotBlank @Size(max = 100) String style,
+            @NotBlank @Size(max = 32) String tuning,
+            @Min(1) @Max(32) int timeSignatureBeats,
+            @Min(1) @Max(32) int timeSignatureBeatUnit,
+            @NotBlank @Size(max = 32) String mood,
+            @NotBlank @Size(max = 32) String rhythmicFeel,
+            @Min(1) @Max(5) int complexity,
+            long variationSeed) {
+
+        CreationConstraints toConstraints() {
+            return CreationConstraints.fromStructured(measures, tempo, keySignature, style, tuning,
+                    timeSignatureBeats, timeSignatureBeatUnit, mood, rhythmicFeel, complexity, variationSeed);
+        }
     }
 
     record RewriteInput(@NotBlank @Size(max = 64) String projectId,

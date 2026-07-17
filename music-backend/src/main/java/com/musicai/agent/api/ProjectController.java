@@ -44,7 +44,7 @@ public class ProjectController {
      *
      * @param projects 项目应用服务
      * @param events SSE 事件代理
-     * @param musicCreatorAgent 可选的 DeepSeek Agent
+     * @param musicCreatorAgent 可选的模型驱动 Agent
      * @param guitarProConnector 服务端桌面连接器
      */
     public ProjectController(MusicProjectService projects, ProjectEventBroker events,
@@ -108,7 +108,7 @@ public class ProjectController {
     }
 
     /**
-     * 将对话交给可选的 DeepSeek Agent；未启用对应 profile 时返回冲突错误。
+     * 将对话交给可选的模型驱动 Agent；未启用 {@code llm} Profile 时返回冲突错误。
      * @param projectId 项目标识
      * @param request 用户消息
      * @return Agent 的文本回复
@@ -118,7 +118,7 @@ public class ProjectController {
         projects.requireProject(projectId);
         MusicCreatorAgent agent = musicCreatorAgent.getIfAvailable();
         if (agent == null) {
-            throw new IllegalStateException("Agent chat requires the deepseek profile");
+            throw new IllegalStateException("Agent chat requires the llm profile");
         }
         return new AgentChatResponse(agent.chat(projectId, request.prompt()));
     }

@@ -10,7 +10,7 @@ status: active
 
 ## 文档范围
 
-本文档记录 Music AI Agent 主项目的业务源码、配置和测试结构。当前知识库是独立的文档 Vault，因此下述业务路径均以主项目根目录为基准，不代表源码一定存放在本 Vault 中。`.git/`、`.idea/`、`.local/`、`target/`、`node_modules/`、`dist/`、Python 虚拟环境及缓存只按目录说明，不枚举内部文件。
+本文档记录 Music AI Agent 主项目的业务源码、配置和测试结构。当前知识库位于主项目的`Music-AI-Agent-Docs/`子目录，并可单独作为Obsidian Vault打开；下述业务路径均以主项目根目录为基准。`.git/`、`.idea/`、`.local/`、`target/`、`node_modules/`、`dist/`、Python虚拟环境及缓存只按目录说明，不枚举内部文件。
 
 ## 主项目根目录
 
@@ -21,16 +21,17 @@ status: active
 | `.idea/`                               | IDEA 本机项目、数据源和工作区配置。                       |
 | `.local/`                              | 默认 H2 数据和 MIDI/MusicXML 导出物，不提交。           |
 | `.run/MusicAiAgentApplication.run.xml` | 可共享的 IDEA Spring Boot 启动配置。                |
-| `.obsidian/`                           | 当前项目 Vault 的 Obsidian 配置；个人 workspace 被忽略。 |
+| `Music-AI-Agent-Docs/.obsidian/`       | 文档Vault的Obsidian配置。                         |
 | `.env`                                 | 本机密钥和 Docker 变量，不提交、不进入笔记。                 |
 | `.env.example`                         | 无真实密钥的环境变量模板。                              |
 | `.gitattributes`                       | Git 文本和换行属性。                               |
 | `.gitignore`                           | 排除密钥、运行数据、IDE 文件、依赖与构建产物。                  |
-| `AGENTS.md`                            | 最高优先级开发规范、架构边界与路线图。                        |
+| `Music-AI-Agent-Docs/AGENTS.md`        | 开发规范、架构边界与路线图。                           |
 | `README.md`                            | 项目介绍、启动和测试入口。                              |
 | `docker-compose.yml`                   | 编排 MySQL、API、前端和音频分析服务。                    |
 | `docker/mysql/init.sql`                | MySQL 数据卷首次启动时创建数据库和五张业务表。                 |
-| `scripts/run-with-deepseek.ps1`        | 安全读取环境变量并以 DeepSeek Profile 启动后端。          |
+| `scripts/run-with-llm.ps1`             | 使用通用提供商、地址、模型名和Key启动`llm` Profile。       |
+| `scripts/run-with-deepseek.ps1`        | 向后兼容的DeepSeek快捷启动入口。                         |
 
 ## 后端根目录 `music-backend/`
 
@@ -55,10 +56,10 @@ status: active
 | `CreationConstraintsAiService.java` | LangChain4j 结构化需求解析接口。 |
 | `CreationConstraintsResponse.java` | 模型输出 DTO：小节、速度、调性、风格、调弦、拍号、情绪、节奏和复杂度。 |
 | `RequirementParser.java` | Application 依赖的需求解析端口。 |
-| `DeepSeekRequirementParser.java` | 将 DeepSeek 输出校验并转换为约束，同时派生稳定变化种子。 |
-| `RuleBasedRequirementParser.java` | 非 DeepSeek Profile 的中英文离线解析器。 |
+| `AiRequirementParser.java` | 将任意配置模型的输出校验并转换为约束，同时派生稳定变化种子。 |
+| `RuleBasedRequirementParser.java` | 非`llm` Profile 的中英文离线解析器。 |
 | `MusicCreatorAgent.java` | 带项目级 Chat Memory 的主对话 Agent。 |
-| `MusicCreationTools.java` | Agent 工具：创建、规划、生成、重写、校验和导出物查询。 |
+| `MusicCreationTools.java` | 内部Agent工具：创建、结构化生成、任务查询、重写、校验和导出物查询。 |
 
 ### API 层 `api/`
 
@@ -78,7 +79,7 @@ status: active
 |---|---|
 | `MusicMcpProperties.java` | MCP 开关和 Token 配置。 |
 | `MusicMcpConfiguration.java` | MCP Server 与 HTTP 端点注册。 |
-| `MusicMcpToolCatalog.java` | 创建、生成、查询、校验、重写和回滚工具 Schema/执行器。 |
+| `MusicMcpToolCatalog.java` | 创建、自然语言/结构化生成、查询、校验、重写和回滚工具 Schema/执行器。 |
 | `McpBearerTokenFilter.java` | MCP Bearer Token 鉴权。 |
 
 ### Application 层 `application/`
@@ -126,7 +127,10 @@ status: active
 
 | 文件 | 作用 |
 |---|---|
-| `DeepSeekConfiguration.java` | 创建 DeepSeek ChatModel、Parser 和主 Agent。 |
+| `LlmProperties.java` | 通用模型提供商、Base URL、模型名和Key配置。 |
+| `ChatModelFactory.java` | 不同模型协议适配器的统一工厂接口。 |
+| `OpenAiCompatibleChatModelFactory.java` | 创建DeepSeek、OpenAI及其他兼容端点的ChatModel。 |
+| `LlmConfiguration.java` | 按`llm` Profile组装ChatModel、Parser和主Agent。 |
 | `AsyncConfiguration.java` | 配置音乐任务线程池。 |
 | `InterruptedTaskRecovery.java` | 启动时恢复异常中断的运行中任务。 |
 | `GuitarProConnector.java` | Windows 下安全打开 Guitar Pro 文件。 |
@@ -157,7 +161,7 @@ status: active
 
 | 文件 | 作用 |
 |---|---|
-| `application.yaml` | 默认 H2、导出目录、DeepSeek、安全和 MCP 配置。 |
+| `application.yaml` | 默认 H2、导出目录、通用LLM、安全和MCP配置。 |
 | `application-mysql.yaml` | MySQL Profile 数据源覆盖。 |
 | `schema.sql` | H2/测试权威建表脚本。 |
 | `prompts/music-requirements-system.txt` | 结构化约束提取提示词。 |
@@ -168,12 +172,14 @@ status: active
 | 文件 | 验证内容 |
 |---|---|
 | `agent/RuleBasedRequirementParserTest.java` | 中英文约束、情绪、节奏和稳定种子。 |
-| `agent/DeepSeekRequirementParserLiveTest.java` | 可选真实 DeepSeek 端到端测试。 |
+| `agent/LlmRequirementParserLiveTest.java` | 可选真实配置模型端到端测试。 |
+| `infrastructure/LlmPropertiesTest.java` | 通用模型配置归一化和缺失Key校验。 |
 | `api/ProjectControllerIntegrationTest.java` | REST 项目和生成链路。 |
 | `api/AccessKeyApiIntegrationTest.java` | 密钥、登录和 Cookie。 |
 | `api/mcp/MusicMcpPropertiesTest.java` | MCP 配置校验。 |
 | `api/mcp/MusicMcpIntegrationTest.java` | MCP 协议、鉴权和工具调用。 |
 | `application/GuitarRiffGeneratorTest.java` | 差异、复现、调性、拍号与可演奏性。 |
+| `application/CreationConstraintsTest.java` | REST、Agent与MCP共享的结构化约束转换。 |
 | `application/MeasureRewriteTest.java` | 非目标小节保持不变。 |
 | `application/MusicProjectServiceIntegrationTest.java` | 生成、版本和导出纵向链路。 |
 | `domain/RhythmicDurationTest.java` | 分数时值与 tick。 |
