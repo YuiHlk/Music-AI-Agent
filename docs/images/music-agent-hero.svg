@@ -1,0 +1,49 @@
+<svg width="1200" height="430" viewBox="0 0 1200 430" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="40" y1="20" x2="1160" y2="420" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#15100F"/><stop offset="0.52" stop-color="#261814"/><stop offset="1" stop-color="#0E1117"/>
+    </linearGradient>
+    <linearGradient id="hot" x1="90" y1="70" x2="730" y2="340" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFB45B"/><stop offset="1" stop-color="#FF5C45"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="10"/></filter>
+    <pattern id="noise" width="28" height="28" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#FFF" fill-opacity=".025"/></pattern>
+  </defs>
+  <rect width="1200" height="430" rx="24" fill="url(#bg)"/>
+  <rect width="1200" height="430" rx="24" fill="url(#noise)"/>
+  <circle cx="1030" cy="95" r="125" fill="#FF6A46" fill-opacity=".07" filter="url(#glow)"/>
+
+  <g transform="translate(76 62)">
+    <text x="0" y="22" fill="#E38F59" font-family="Consolas, monospace" font-size="13" letter-spacing="3">MUSIC AI AGENT / 01</text>
+    <text x="0" y="102" fill="#FFF8EF" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="56" font-weight="700">AI 负责听懂</text>
+    <text x="0" y="169" fill="url(#hot)" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="56" font-weight="700">Java 负责写对</text>
+    <text x="2" y="220" fill="#C4ADA1" font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="18">从一句创作描述，到一段真正可演奏的吉他 Riff</text>
+    <g transform="translate(2 260)" font-family="Consolas, monospace" font-size="14">
+      <text y="0" fill="#77675F">E |</text><text x="34" y="0" fill="#D98B5E">--0--0--3--5--</text>
+      <text y="24" fill="#77675F">B |</text><text x="34" y="24" fill="#A89083">----------------</text>
+      <text y="48" fill="#77675F">G |</text><text x="34" y="48" fill="#A89083">----------------</text>
+      <text y="72" fill="#77675F">D |</text><text x="34" y="72" fill="#D98B5E">-----------2----</text>
+      <text y="96" fill="#77675F">A |</text><text x="34" y="96" fill="#A89083">----------------</text>
+      <text y="120" fill="#77675F">E |</text><text x="34" y="120" fill="#D98B5E">--0-------------</text>
+    </g>
+  </g>
+
+  <g transform="translate(754 62)">
+    <rect x="0" y="0" width="370" height="306" rx="18" fill="#0D1015" stroke="#503329"/>
+    <text x="28" y="38" fill="#80675D" font-family="Consolas, monospace" font-size="12">CREATION PIPELINE</text>
+    <g font-family="Segoe UI, Microsoft YaHei, sans-serif" font-size="14">
+      <rect x="28" y="62" width="138" height="44" rx="10" fill="#251B18" stroke="#81513C"/><text x="97" y="89" fill="#F4D7C6" text-anchor="middle">自然语言意图</text>
+      <path d="M166 84H202" stroke="#A86546" stroke-width="2"/><path d="M196 78L203 84L196 90" stroke="#A86546" stroke-width="2"/>
+      <rect x="204" y="62" width="138" height="44" rx="10" fill="#251B18" stroke="#81513C"/><text x="273" y="89" fill="#F4D7C6" text-anchor="middle">结构化约束</text>
+      <path d="M273 106V137" stroke="#A86546" stroke-width="2"/><path d="M267 131L273 138L279 131" stroke="#A86546" stroke-width="2"/>
+      <rect x="204" y="140" width="138" height="44" rx="10" fill="#31201A" stroke="#E08355"/><text x="273" y="167" fill="#FFD6B6" text-anchor="middle">Java 音乐内核</text>
+      <path d="M204 162H168" stroke="#A86546" stroke-width="2"/><path d="M174 156L167 162L174 168" stroke="#A86546" stroke-width="2"/>
+      <rect x="28" y="140" width="138" height="44" rx="10" fill="#251B18" stroke="#81513C"/><text x="97" y="167" fill="#F4D7C6" text-anchor="middle">可演奏性校验</text>
+      <path d="M97 184V215" stroke="#A86546" stroke-width="2"/><path d="M91 209L97 216L103 209" stroke="#A86546" stroke-width="2"/>
+      <rect x="28" y="218" width="314" height="58" rx="10" fill="url(#hot)" fill-opacity=".14" stroke="#FF7850"/>
+      <text x="185" y="243" fill="#FFE3D2" text-anchor="middle" font-weight="600">MIDI + MusicXML</text>
+      <text x="185" y="263" fill="#B9856D" text-anchor="middle" font-size="11">继续在 Guitar Pro 8 里编辑</text>
+    </g>
+  </g>
+  <text x="1125" y="400" fill="#69473A" font-family="Consolas, monospace" font-size="11" text-anchor="end" letter-spacing="2">PROMPT → SCORE → PLAY</text>
+</svg>
